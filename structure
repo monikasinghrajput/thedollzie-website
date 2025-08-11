@@ -1,0 +1,86 @@
+/* dollzie-react/
+├── src/
+│   ├── components/
+│   │   ├── Header/
+│   │   │   ├── Header.jsx
+│   │   │   └── Header.css
+│   │   ├── Hero/
+│   │   │   ├── Hero.jsx
+│   │   │   └── Hero.css
+│   │   ├── Categories/
+│   │   │   ├── Categories.jsx
+│   │   │   └── Categories.css
+│   │   ├── Products/
+│   │   │   ├── Products.jsx
+│   │   │   └── Products.css
+│   │   ├── About/
+│   │   │   ├── About.jsx
+│   │   │   └── About.css
+│   │   ├── Contact/
+│   │   │   ├── Contact.jsx
+│   │   │   └── Contact.css
+│   │   ├── Footer/
+│   │   │   ├── Footer.jsx
+│   │   │   └── Footer.css
+│   │   ├── WhatWeDo/
+│   │   │   ├── WhatWeDo.jsx
+│   │   │   └── WhatWeDo.css
+│   │   ├── Cart/
+│   │   │   ├── Cart.jsx
+│   │   │   └── Cart.css
+│   │   └── common/
+│   │       ├── ProductCard/
+│   │       │   ├── ProductCard.jsx
+│   │       │   └── ProductCard.css
+│   │       ├── LoadingSpinner/
+│   │       │   ├── LoadingSpinner.jsx
+│   │       │   └── LoadingSpinner.css
+│   │       └── Notification/
+│   │           ├── Notification.jsx
+│   │           └── Notification.css
+│   ├── data/
+│   │   └── products.js
+│   ├── hooks/
+│   │   └── useCart.js
+│   ├── App.jsx
+│   ├── App.css
+│   └── index.js
+└── 
+Dollzie-react/
+├── public/
+│   └── index.html ✓
+├── src/
+│   ├── App.js
+│   ├── App.css
+│   └── index.js
+├── package.json
+└── node_modules/
+
+ npx create-react-app dollzie-react
+cd dollzie-react
+npm install react-router-dom
+npm install @fortawesome/fontawesome-free
+npm install react-intersection-observer
+npm install react-spring 
+
+# 🚀 Installation Commands:
+
+```bash
+# Create project
+npx create-react-app dollzie-react
+cd dollzie-react
+
+# Install dependencies
+npm install react-router-dom @fortawesome/fontawesome-free react-intersection-observer react-spring
+
+# Start development server
+npm start
+
+
+
+
+
+
+
+
+ */
