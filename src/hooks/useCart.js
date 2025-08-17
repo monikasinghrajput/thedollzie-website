@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+/* import { useState, useEffect } from 'react';
 
 export const useCart = () => {
   const [cart, setCart] = useState([]);
@@ -93,4 +93,5 @@ export const useCart = () => {
 };
 
 // Default export bhi add kar dete hain
-export default useCart;
+
+export default useCart; */
