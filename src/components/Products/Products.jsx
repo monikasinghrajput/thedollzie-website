@@ -1,90 +1,64 @@
-// Products.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import './Products.css';
 
-/* ===== Wishlist helpers (Header ke LS key ke saath) ===== */
-const LS_WISHLIST_KEY = "app_wishlist";
-const readLS = (key, fallback) => {
-  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
-};
-
-/* ---------------------------------------------
-   ProductCard — full image, compact info,
-   Add to Cart + Buy Now (Etsy/Meesho) with auto-flip menu
-----------------------------------------------*/
-const ProductCard = ({ product, onAddToCart, showNotification, animationDelay = 0 }) => {
+/* ===== ProductCard Component ===== */
+const ProductCard = ({ product, showNotification, animationDelay = 0 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [showBuyMenu, setShowBuyMenu] = useState(false);
-  const [dirUp, setDirUp] = useState(true); // auto-flip direction
+  const [showShopMenu, setShowShopMenu] = useState(false);
+  const [dirUp, setDirUp] = useState(true);
   const menuRef = useRef(null);
 
-  // --- WISHLIST STATE (UI highlight + sync) ---
-  const [isWished, setIsWished] = useState(false);
-
-  useEffect(() => {
-    const list = readLS(LS_WISHLIST_KEY, []);
-    setIsWished(list.some((p) => p.id === product.id));
-  }, [product.id]);
-
-  useEffect(() => {
-    const sync = () => {
-      const list = readLS(LS_WISHLIST_KEY, []);
-      setIsWished(list.some((p) => p.id === product.id));
-    };
-    const onWishEvent = () => sync();
-    window.addEventListener("wishlist:add", onWishEvent);
-    window.addEventListener("wishlist:remove", onWishEvent);
-    window.addEventListener("wishlist:toggle", onWishEvent);
-    window.addEventListener("storage", onWishEvent);
-    return () => {
-      window.removeEventListener("wishlist:add", onWishEvent);
-      window.removeEventListener("wishlist:remove", onWishEvent);
-      window.removeEventListener("wishlist:toggle", onWishEvent);
-      window.removeEventListener("storage", onWishEvent);
-    };
-  }, [product.id]);
-
-  const toggleWishlist = () => {
-    window.dispatchEvent(
-      new CustomEvent("wishlist:toggle", {
-        detail: { id: product.id, title: product.title, image: product.image },
-      })
-    );
-    // optimistic UI
-    setIsWished((v) => !v);
-    showNotification?.(isWished ? "Removed from wishlist" : "Added to wishlist", "success");
-  };
-
-  // Close buy menu on outside click
+  // Close menu on outside click
   useEffect(() => {
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setShowBuyMenu(false);
+        setShowShopMenu(false);
       }
     };
-    if (showBuyMenu) document.addEventListener('mousedown', handler);
+    if (showShopMenu) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [showBuyMenu]);
+  }, [showShopMenu]);
 
-  // Close buy menu on Esc
+  // Close menu on Esc
   useEffect(() => {
-    const esc = (e) => e.key === 'Escape' && setShowBuyMenu(false);
-    if (showBuyMenu) window.addEventListener('keydown', esc);
+    const esc = (e) => e.key === 'Escape' && setShowShopMenu(false);
+    if (showShopMenu) window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
-  }, [showBuyMenu]);
+  }, [showShopMenu]);
 
-  // Auto flip UP/DOWN based on available space
+  // Menu direction detection
+  const checkMenuDirection = () => {
+    if (!menuRef.current) return;
+    
+    const trigger = menuRef.current.querySelector('.shop-now-trigger');
+    if (!trigger) return;
+    
+    const rect = trigger.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const spaceAbove = rect.top;
+    const spaceBelow = viewportHeight - rect.bottom;
+    
+    const menuHeight = 150;
+    const canShowAbove = spaceAbove >= menuHeight;
+    const canShowBelow = spaceBelow >= menuHeight;
+    
+    if (canShowAbove) {
+      setDirUp(true);
+    } else if (canShowBelow) {
+      setDirUp(false);
+    } else {
+      setDirUp(true);
+    }
+  };
+
   useEffect(() => {
-    if (!showBuyMenu || !menuRef.current) return;
-    const btn = menuRef.current.querySelector('.buy-now-trigger');
-    if (!btn) return;
-    const rect = btn.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    setDirUp(spaceBelow < 220); // ~220px dropdown space
-  }, [showBuyMenu]);
+    if (showShopMenu) {
+      setTimeout(checkMenuDirection, 10);
+    }
+  }, [showShopMenu]);
 
-  const handleBuyNow = async (platform) => {
+  const handleShopNow = async (platform) => {
     setIsLoading(true);
     try {
       await new Promise((r) => setTimeout(r, 600));
@@ -98,7 +72,7 @@ const ProductCard = ({ product, onAddToCart, showNotification, animationDelay = 
       showNotification?.('Unable to open link. Try again.', 'error');
     } finally {
       setIsLoading(false);
-      setShowBuyMenu(false);
+      setShowShopMenu(false);
     }
   };
 
@@ -120,20 +94,6 @@ const ProductCard = ({ product, onAddToCart, showNotification, animationDelay = 
     }
   };
 
-  const addToCart = () => {
-    if (onAddToCart) {
-      onAddToCart(product);
-    } else {
-      // Safe fallback: fire global cart event so Header persist kare
-      window.dispatchEvent(
-        new CustomEvent("cart:add", {
-          detail: { id: product.id, title: product.title, image: product.image, quantity: 1 },
-        })
-      );
-    }
-    showNotification?.(`Added ${product.title} to cart`, 'success');
-  };
-
   const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
 
   return (
@@ -145,7 +105,7 @@ const ProductCard = ({ product, onAddToCart, showNotification, animationDelay = 
         {discountPercentage > 0 && <span className="badge discount-badge">{discountPercentage}% Off</span>}
       </div>
 
-      {/* Full Image */}
+      {/* Image */}
       <div className="product-image-container clip-rounded">
         <div className={`image-loader ${imageLoaded ? 'loaded' : ''}`}>
           <div className="image-skeleton"></div>
@@ -161,22 +121,11 @@ const ProductCard = ({ product, onAddToCart, showNotification, animationDelay = 
           }}
         />
 
-        {/* Overlay */}
+        {/* Overlay - Only Quick View and Share */}
         <div className="image-overlay">
           <div className="overlay-buttons">
             <button type="button" className="quick-view-btn" title="Quick View">
               <i className="fas fa-eye"></i>
-            </button>
-
-            {/* WISHLIST BUTTON (active state + event) */}
-            <button
-              type="button"
-              className={`wishlist-btn ${isWished ? 'active' : ''}`}
-              title={isWished ? "Remove from Wishlist" : "Add to Wishlist"}
-              onClick={toggleWishlist}
-              aria-pressed={isWished}
-            >
-              <i className={`${isWished ? 'fas' : 'far'} fa-heart`}></i>
             </button>
 
             <button type="button" className="share-btn" title="Share" onClick={handleShare}>
@@ -186,7 +135,7 @@ const ProductCard = ({ product, onAddToCart, showNotification, animationDelay = 
         </div>
       </div>
 
-      {/* Compact info (NO description) */}
+      {/* Product Info */}
       <div className="product-info product-info--compact">
         <div className="product-category">
           <i className="fas fa-tag"></i>
@@ -214,25 +163,15 @@ const ProductCard = ({ product, onAddToCart, showNotification, animationDelay = 
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Shop Now Actions */}
         <div className="card-actions">
-          <button
-            type="button"
-            className="add-to-cart-btn"
-            onClick={addToCart}  // safe fallback included
-            aria-label={`Add ${product.title} to cart`}
-          >
-            <i className="fas fa-cart-plus"></i>
-            <strong>ADD TO CART</strong>
-          </button>
-
-          <div className="buy-now-wrap" ref={menuRef}>
+          <div className="shop-now-wrap" ref={menuRef}>
             <button
               type="button"
-              className={`buy-now-trigger ${isLoading ? 'loading' : ''}`}
-              onClick={() => setShowBuyMenu((s) => !s)}
-              aria-expanded={showBuyMenu}
-              aria-controls={`buy-menu-${product.id}`}
+              className={`shop-now-trigger ${isLoading ? 'loading' : ''}`}
+              onClick={() => setShowShopMenu((s) => !s)}
+              aria-expanded={showShopMenu}
+              aria-controls={`shop-menu-${product.id}`}
             >
               {isLoading ? (
                 <>
@@ -241,22 +180,32 @@ const ProductCard = ({ product, onAddToCart, showNotification, animationDelay = 
                 </>
               ) : (
                 <>
-                  <i className="fas fa-bolt"></i>
-                  <strong>BUY NOW</strong>
+                  <i className="fas fa-shopping-cart"></i>
+                  <strong>SHOP NOW</strong>
                 </>
               )}
             </button>
 
-            {showBuyMenu && (
+            {showShopMenu && (
               <div
-                id={`buy-menu-${product.id}`}
-                className={`buy-menu ${dirUp ? 'up' : 'down'}`}
+                id={`shop-menu-${product.id}`}
+                className={`shop-menu ${dirUp ? 'up' : 'down'}`}
               >
-                <button type="button" className="buy-menu-item etsy" onClick={() => handleBuyNow('etsy')}>
-                  <i className="fas fa-store"></i> Etsy
+                <button 
+                  type="button" 
+                  className="shop-menu-item etsy" 
+                  onClick={() => handleShopNow('etsy')}
+                >
+                  <i className="fas fa-store"></i> 
+                  Shop on Etsy
                 </button>
-                <button type="button" className="buy-menu-item meesho" onClick={() => handleBuyNow('meesho')}>
-                  <i className="fas fa-shopping-bag"></i> Meesho
+                <button 
+                  type="button" 
+                  className="shop-menu-item meesho" 
+                  onClick={() => handleShopNow('meesho')}
+                >
+                  <i className="fas fa-shopping-bag"></i> 
+                  Shop on Meesho
                 </button>
               </div>
             )}
@@ -267,9 +216,7 @@ const ProductCard = ({ product, onAddToCart, showNotification, animationDelay = 
   );
 };
 
-/* ---------------------------------------------
-   Products data (your items; sample images)
-----------------------------------------------*/
+/* ===== Products Data - All 20 Products ===== */
 const productsData = [
   // Home Decor
   {
@@ -556,14 +503,12 @@ const productsData = [
   }
 ];
 
-/* ---------------------------------------------
-   Products (list + filters)
-----------------------------------------------*/
-const Products = ({ onAddToCart, showNotification, setIsLoading }) => {
+/* ===== Main Products Component ===== */
+const Products = ({ showNotification, setIsLoading }) => {
   const [filteredProducts, setFilteredProducts] = useState(productsData);
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortBy, setSortBy] = useState('default');
-  const [displayCount, setDisplayCount] = useState(9); // 3 per row x 3 rows
+  const [displayCount, setDisplayCount] = useState(9);
   const [searchTerm, setSearchTerm] = useState('');
 
   const filters = [
@@ -624,7 +569,6 @@ const Products = ({ onAddToCart, showNotification, setIsLoading }) => {
   const handleLoadMore = () => {
     setIsLoading?.(true);
     setTimeout(() => {
-      // add multiples of 9 so rows stay complete
       setDisplayCount(prev => prev + 9);
       setIsLoading?.(false);
     }, 500);
@@ -729,7 +673,6 @@ const Products = ({ onAddToCart, showNotification, setIsLoading }) => {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  onAddToCart={onAddToCart}
                   showNotification={showNotification}
                   animationDelay={index * 0.06}
                 />
